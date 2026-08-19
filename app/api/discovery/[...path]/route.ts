@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getAgent } from '@/lib/store'
 import { proxyDiscovery } from '@/lib/hermes'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-export async function GET({ params }: { params: Promise<{ path: string[] }> }) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params
   const agentId = path[0]
   const upstreamPath = '/' + path.slice(1).join('/')
