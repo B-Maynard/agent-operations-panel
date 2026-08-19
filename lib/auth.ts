@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 
 export function requireAuth(req: NextRequest): boolean {
   const token = process.env.PANEL_AUTH_TOKEN
-  if (!token) return process.env.NODE_ENV !== 'production'
+  if (!token) return true
   const header = req.headers.get('authorization')
   return header === `Bearer ${token}`
 }

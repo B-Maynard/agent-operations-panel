@@ -10,7 +10,7 @@ export function FanoutStatusTable() {
   const searchParams = useSearchParams()
   const batchId = searchParams.get('batchId')
   const { data } = usePolling<Run[]>(
-    () => fetch(`/api/runs?batchId=${batchId}`).then((r) => r.json()),
+    () => fetch(`/api/runs?batchId=${batchId}`).then((r) => (r.ok ? r.json() : [])),
     3000,
     [batchId],
   )

@@ -9,7 +9,7 @@ import type { Run } from '@/lib/types'
 
 export function RecentRunsList() {
   const { data } = usePolling<Run[]>(
-    () => fetch('/api/runs?limit=10').then((r) => r.json()),
+    () => fetch('/api/runs?limit=10').then((r) => (r.ok ? r.json() : [])),
     5000,
     [],
   )

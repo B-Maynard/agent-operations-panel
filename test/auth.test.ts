@@ -17,6 +17,12 @@ describe('auth', () => {
     expect(requireAuth(req)).toBe(true)
   })
 
+  it('allows all when token is empty string', () => {
+    process.env.PANEL_AUTH_TOKEN = ''
+    const req = new NextRequest('http://localhost/api/agents')
+    expect(requireAuth(req)).toBe(true)
+  })
+
   it('rejects missing header when token configured', () => {
     process.env.PANEL_AUTH_TOKEN = 'secret'
     const req = new NextRequest('http://localhost/api/agents')

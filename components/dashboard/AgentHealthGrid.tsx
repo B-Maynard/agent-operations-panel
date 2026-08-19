@@ -9,7 +9,7 @@ import type { AgentHealth } from '@/lib/types'
 
 function HealthTile({ agentId, name }: { agentId: string; name: string }) {
   const { data } = usePolling<AgentHealth>(
-    () => fetch(`/api/agents/${agentId}/health`).then((r) => r.json()),
+    () => fetch(`/api/agents/${agentId}/health`).then((r) => (r.ok ? r.json() : null)),
     15000,
     [agentId],
   )
