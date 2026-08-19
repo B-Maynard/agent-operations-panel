@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mission Control Terminal</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --accent-dim: #1f6feb;
+    --success: #3fb950;
+    --danger: #f85149;
+    --warn: #d29922;
+    --purple: #bc8cff;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+  header h1 { font-size: 16px; font-weight: 600; }
+  header h1 span { color: var(--accent); }
+  .back {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .back:hover { color: var(--text); border-color: var(--accent); }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+    flex-wrap: wrap;
+  }
+  .controls label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+  select, input[type="text"] {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: var(--mono);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  select:focus, input[type="text"]:focus { border-color: var(--accent); }
+  .cmdline {
+    flex: 1;
+    min-width: 260px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0 12px;
+  }
+  .cmdline .prompt { color: var(--success); font-family: var(--mono); font-size: 15px; }
+  .cmdline input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 9px 0;
+    outline: none;
+  }
+  .btn {
+    background: var(--accent-dim);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 9px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn:hover { background: var(--accent); }
+  .btn.run { background: var(--success); }
+  .btn.run:hover { background: #2ea043; }
+  .btn.stop { background: var(--danger); }
+  .btn.stop:hover { background: #da3633; }
+  .btn.ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn.ghost:hover { color: var(--text); border-color: var(--muted); }
+
+  .log {
+    flex: 1;
+    margin: 20px 24px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow-y: auto;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.7;
+    padding: 16px 20px;
+    max-height: calc(100vh - 260px);
+  }
+  .line { display: flex; gap: 12px; padding: 2px 0; white-space: pre-wrap; word-break: break-word; }
+  .line .ts { color: var(--muted); flex-shrink: 0; }
+  .line .tag { flex-shrink: 0; font-weight: 700; }
+  .tag.info { color: var(--accent); }
+  .tag.ok { color: var(--success); }
+  .tag.err { color: var(--danger); }
+  .tag.warn { color: var(--warn); }
+  .tag.sys { color: var(--purple); }
+  .line .msg { color: var(--text); }
+  .line.err .msg { color: #ffa198; }
+  .cursor::after {
+    content: "▊";
+    color: var(--accent);
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .statusbar {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 10px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--card);
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .statusbar .stat { display: flex; align-items: center; gap: 6px; }
+  .statusbar .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot.online { background: var(--success); }
+  .dot.busy { background: var(--warn); }
+  .dot.offline { background: var(--danger); }
+  .statusbar .val { color: var(--text); }
+</style>
+</head>
+<body>
+  <header>
+    <h1>▣ Mission Control <span>Terminal</span></h1>
+    <a class="back" href="index.html">← Back to mockups</a>
+  </header>
+
+  <div class="controls">
+    <label for="agent">Agent</label>
+    <select id="agent">
+      <option>atlas-01</option>
+      <option>atlas-02</option>
+      <option>hermes-core</option>
+      <option>orion-edge</option>
+      <option>all-agents</option>
+    </select>
+    <div class="cmdline">
+      <span class="prompt">▸</span>
+      <input type="text" placeholder="run deploy --env staging" value="run deploy --env staging">
+    </div>
+    <button class="btn run">Run</button>
+    <button class="btn stop">Stop</button>
+    <button class="btn ghost">Clear</button>
+  </div>
+
+  <div class="log" id="log">
+    <div class="line"><span class="ts">20:14:02</span><span class="tag sys">SYS</span><span class="msg">session started · connected to 4 agents</span></div>
+    <div class="line"><span class="ts">20:14:05</span><span class="tag info">INFO</span><span class="msg">atlas-01 · dispatching run <b>deploy --env staging</b></span></div>
+    <div class="line"><span class="ts">20:14:06</span><span class="tag info">INFO</span><span class="msg">atlas-02 · dispatching run <b>deploy --env staging</b></span></div>
+    <div class="line"><span class="ts">20:14:07</span><span class="tag warn">WARN</span><span class="msg">orion-edge · low disk space (82% used) — proceeding</span></div>
+    <div class="line"><span class="ts">20:14:09</span><span class="tag info">INFO</span><span class="msg">atlas-01 · building bundle…</span></div>
+    <div class="line"><span class="ts">20:14:11</span><span class="tag info">INFO</span><span class="msg">atlas-02 · building bundle…</span></div>
+    <div class="line"><span class="ts">20:14:14</span><span class="tag ok">OK</span><span class="msg">atlas-01 · bundle built in 4.2s</span></div>
+    <div class="line"><span class="ts">20:14:15</span><span class="tag info">INFO</span><span class="msg">atlas-01 · uploading artifacts…</span></div>
+    <div class="line"><span class="ts">20:14:18</span><span class="tag ok">OK</span><span class="msg">atlas-02 · bundle built in 6.8s</span></div>
+    <div class="line"><span class="ts">20:14:20</span><span class="tag info">INFO</span><span class="msg">hermes-core · awaiting approval for <b>deploy --env staging</b></span></div>
+    <div class="line"><span class="ts">20:14:22</span><span class="tag warn">WARN</span><span class="msg">hermes-core · approval pending — run paused</span></div>
+    <div class="line"><span class="ts">20:14:25</span><span class="tag err">ERR</span><span class="msg">orion-edge · connection lost — retrying in 5s</span></div>
+    <div class="line"><span class="ts">20:14:30</span><span class="tag info">INFO</span><span class="msg">orion-edge · reconnected</span></div>
+    <div class="line"><span class="ts">20:14:33</span><span class="tag ok">OK</span><span class="msg">atlas-01 · deploy complete (staging)</span></div>
+    <div class="line"><span class="ts">20:14:35</span><span class="tag info">INFO</span><span class="msg">atlas-02 · deploy complete (staging)</span></div>
+    <div class="line"><span class="ts">20:14:36</span><span class="tag sys">SYS</span><span class="msg">2 runs finished · 1 awaiting approval · 1 degraded</span></div>
+    <div class="line cursor"><span class="ts">20:14:37</span><span class="msg"></span></div>
+  </div>
+
+  <div class="statusbar">
+    <span class="stat"><span class="dot online"></span> online <span class="val">3</span></span>
+    <span class="stat"><span class="dot busy"></span> busy <span class="val">1</span></span>
+    <span class="stat"><span class="dot offline"></span> offline <span class="val">1</span></span>
+    <span class="stat">runs today <span class="val">47</span></span>
+    <span class="stat">active runs <span class="val">2</span></span>
+    <span class="stat">uptime <span class="val">99.98%</span></span>
+  </div>
+
+<script>
+  const log = document.getElementById('log');
+  const input = document.querySelector('.cmdline input');
+  const runBtn = document.querySelector('.btn.run');
+  const clearBtn = document.querySelector('.btn.ghost');
+  const stopBtn = document.querySelector('.btn.stop');
+  const agentSel = document.getElementById('agent');
+  const tags = ['info', 'ok', 'warn', 'err'];
+  const msgs = [
+    'dispatching run <b>healthcheck --quick</b>',
+    'agent heartbeat OK (12ms)',
+    'cache warmed for 3 endpoints',
+    'rate limit approaching — throttling',
+    'artifact checksum mismatch — retrying',
+    'run completed in 3.1s',
+    'queue depth: 4 pending runs'
+  ];
+  let timer = null;
+
+  function stamp() {
+    const d = new Date();
+    return d.toTimeString().slice(0, 8);
+  }
+  function append(tag, msg) {
+    const line = document.createElement('div');
+    line.className = 'line' + (tag === 'err' ? ' err' : '');
+    line.innerHTML = '<span class="ts">' + stamp() + '</span><span class="tag ' + tag + '">' + tag.toUpperCase() + '</span><span class="msg">' + msg + '</span>';
+    log.insertBefore(line, log.lastElementChild);
+    log.scrollTop = log.scrollHeight;
+  }
+  function stream() {
+    const tag = tags[Math.floor(Math.random() * tags.length)];
+    const msg = msgs[Math.floor(Math.random() * msgs.length)];
+    append(tag, agentSel.value + ' · ' + msg);
+  }
+  runBtn.addEventListener('click', () => {
+    if (timer) return;
+    append('sys', 'run started: <b>' + input.value + '</b>');
+    timer = setInterval(stream, 900);
+    runBtn.textContent = 'Running…';
+    runBtn.disabled = true;
+  });
+  stopBtn.addEventListener('click', () => {
+    if (!timer) return;
+    clearInterval(timer);
+    timer = null;
+    append('sys', 'run stopped by operator');
+    runBtn.textContent = 'Run';
+    runBtn.disabled = false;
+  });
+  clearBtn.addEventListener('click', () => {
+    while (log.children.length > 1) log.removeChild(log.firstElementChild);
+  });
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') runBtn.click(); });
+</script>
+</body>
+</html>

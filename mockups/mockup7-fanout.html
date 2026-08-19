@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fan-out Matrix</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --accent-dim: #1f6feb;
+    --success: #3fb950;
+    --danger: #f85149;
+    --warn: #d29922;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+  header h1 { font-size: 16px; font-weight: 600; }
+  header h1 span { color: var(--accent); }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .back {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .back:hover { color: var(--text); border-color: var(--accent); }
+  .btn {
+    background: var(--accent-dim);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 9px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn:hover { background: var(--accent); }
+
+  main {
+    flex: 1;
+    padding: 24px;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    overflow-x: auto;
+  }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-bottom: 16px;
+    font-size: 12px;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+  .legend .item { display: flex; align-items: center; gap: 6px; }
+  .legend .swatch { width: 14px; height: 14px; border-radius: 4px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    min-width: 720px;
+  }
+  thead th {
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 14px 12px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(22, 27, 34, 0.9);
+  }
+  thead th:first-child { text-align: left; padding-left: 20px; }
+  tbody td {
+    text-align: center;
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 15px;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr { transition: background 0.15s; }
+  tbody tr:hover { background: rgba(88, 166, 255, 0.05); }
+  td.cmd {
+    text-align: left;
+    padding-left: 20px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  td.cmd .sub { display: block; font-size: 11px; color: var(--muted); font-weight: 400; margin-top: 2px; }
+
+  .cell {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 32px;
+    border-radius: 6px;
+    font-weight: 700;
+    transition: transform 0.15s, filter 0.15s;
+  }
+  .cell:hover { transform: scale(1.1); filter: brightness(1.15); }
+  .cell.done { background: rgba(63, 185, 80, 0.18); color: var(--success); }
+  .cell.fail { background: rgba(248, 81, 73, 0.18); color: var(--danger); }
+  .cell.run { background: rgba(88, 166, 255, 0.18); color: var(--accent); }
+  .cell.idle { background: rgba(139, 148, 158, 0.12); color: var(--muted); }
+</style>
+</head>
+<body>
+  <header>
+    <h1>▦ Fan-out <span>Matrix</span></h1>
+    <div class="header-right">
+      <a class="back" href="index.html">← Back</a>
+      <button class="btn" id="run-all">Run All</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="legend">
+      <span class="item"><span class="swatch" style="background:rgba(63,185,80,.18)"></span> ✓ done</span>
+      <span class="item"><span class="swatch" style="background:rgba(248,81,73,.18)"></span> ✗ failed</span>
+      <span class="item"><span class="swatch" style="background:rgba(88,166,255,.18)"></span> ▶ running</span>
+      <span class="item"><span class="swatch" style="background:rgba(139,148,158,.12)"></span> — idle</span>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Command</th>
+          <th>atlas-01</th>
+          <th>atlas-02</th>
+          <th>hermes-core</th>
+          <th>orion-edge</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="cmd">deploy --env staging<span class="sub">deploy</span></td>
+          <td><span class="cell run">▶</span></td>
+          <td><span class="cell run">▶</span></td>
+          <td><span class="cell done">✓</span></td>
+          <td><span class="cell fail">✗</span></td>
+        </tr>
+        <tr>
+          <td class="cmd">healthcheck --quick<span class="sub">healthcheck</span></td>
+          <td><span class="cell done">✓</span></td>
+          <td><span class="cell done">✓</span></td>
+          <td><span class="cell done">✓</span></td>
+          <td><span class="cell idle">—</span></td>
+        </tr>
+        <tr>
+          <td class="cmd">backup --full<span class="sub">backup</span></td>
+          <td><span class="cell done">✓</span></td>
+          <td><span class="cell idle">—</span></td>
+          <td><span class="cell idle">—</span></td>
+          <td><span class="cell idle">—</span></td>
+        </tr>
+        <tr>
+          <td class="cmd">index-rebuild<span class="sub">index</span></td>
+          <td><span class="cell idle">—</span></td>
+          <td><span class="cell idle">—</span></td>
+          <td><span class="cell run">▶</span></td>
+          <td><span class="cell idle">—</span></td>
+        </tr>
+        <tr>
+          <td class="cmd">lint --all<span class="sub">lint</span></td>
+          <td><span class="cell done">✓</span></td>
+          <td><span class="cell done">✓</span></td>
+          <td><span class="cell idle">—</span></td>
+          <td><span class="cell idle">—</span></td>
+        </tr>
+        <tr>
+          <td class="cmd">warm-cache<span class="sub">cache</span></td>
+          <td><span class="cell idle">—</span></td>
+          <td><span class="cell idle">—</span></td>
+          <td><span class="cell idle">—</span></td>
+          <td><span class="cell done">✓</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
+
+<script>
+  document.getElementById('run-all').addEventListener('click', () => {
+    const btn = document.getElementById('run-all');
+    btn.textContent = 'Running…';
+    btn.disabled = true;
+    setTimeout(() => {
+      btn.textContent = 'Run All';
+      btn.disabled = false;
+    }, 1500);
+  });
+</script>
+</body>
+</html>

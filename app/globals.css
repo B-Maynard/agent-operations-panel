@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0a0a0a;
+  --color-card: #161b22;
+  --color-border: #30363d;
+  --color-text: #e6edf3;
+  --color-muted: #8b949e;
+  --color-accent: #58a6ff;
+  --color-accent-dim: #1f6feb;
+  --color-success: #3fb950;
+  --color-danger: #f85149;
+  --color-warn: #d29922;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+html,
+body {
+  background: #0a0a0a;
+  color: #e6edf3;
+}
+
+* {
+  box-sizing: border-box;
+}

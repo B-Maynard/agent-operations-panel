@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Dashboard</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --accent-dim: #1f6feb;
+    --success: #3fb950;
+    --danger: #f85149;
+    --warn: #d29922;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+  header h1 { font-size: 16px; font-weight: 600; }
+  header h1 span { color: var(--accent); }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .back {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .back:hover { color: var(--text); border-color: var(--accent); }
+  .btn {
+    background: var(--accent-dim);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 9px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn:hover { background: var(--accent); }
+
+  main { flex: 1; padding: 24px; max-width: 1200px; width: 100%; margin: 0 auto; }
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .tile {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+  }
+  .tile:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-dim);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  }
+  .tile-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .tile-name { font-family: var(--mono); font-size: 15px; font-weight: 700; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.online { background: var(--success); box-shadow: 0 0 8px rgba(63, 185, 80, 0.6); }
+  .dot.offline { background: var(--danger); }
+  .tile-state { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+  .tile-state b { color: var(--text); }
+  .tile-state .active { color: var(--accent); }
+  .tile-state .idle { color: var(--muted); }
+  .tile-stats {
+    display: flex;
+    gap: 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .tile-stats .num { color: var(--text); font-weight: 700; }
+  .tile .open {
+    width: 100%;
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent-dim);
+    border-radius: 6px;
+    padding: 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .tile .open:hover { background: rgba(31, 111, 235, 0.15); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  thead th {
+    text-align: left;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(22, 27, 34, 0.8);
+  }
+  tbody td {
+    padding: 12px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr { transition: background 0.15s; }
+  tbody tr:hover { background: rgba(88, 166, 255, 0.05); }
+  td.mono { font-family: var(--mono); }
+  .status-pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 999px;
+    padding: 2px 10px;
+  }
+  .status-pill.done { background: rgba(63, 185, 80, 0.15); color: var(--success); }
+  .status-pill.running { background: rgba(88, 166, 255, 0.15); color: var(--accent); }
+  .status-pill.failed { background: rgba(248, 81, 73, 0.15); color: var(--danger); }
+  .status-pill.approval { background: rgba(210, 153, 34, 0.15); color: var(--warn); }
+  td.time { color: var(--muted); font-family: var(--mono); font-size: 12px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>◈ Agent <span>Dashboard</span></h1>
+    <div class="header-right">
+      <a class="back" href="index.html">← Back</a>
+      <button class="btn">+ Agent</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="section-title">Agents</div>
+    <div class="tiles">
+      <div class="tile">
+        <div class="tile-head"><span class="tile-name">atlas-01</span><span class="dot online"></span></div>
+        <div class="tile-state"><b class="active">● active</b> · online</div>
+        <div class="tile-stats"><span>runs <span class="num">128</span></span><span>success <span class="num">96%</span></span></div>
+        <button class="open">Open</button>
+      </div>
+      <div class="tile">
+        <div class="tile-head"><span class="tile-name">atlas-02</span><span class="dot online"></span></div>
+        <div class="tile-state"><b class="active">● active</b> · online</div>
+        <div class="tile-stats"><span>runs <span class="num">104</span></span><span>success <span class="num">93%</span></span></div>
+        <button class="open">Open</button>
+      </div>
+      <div class="tile">
+        <div class="tile-head"><span class="tile-name">hermes-core</span><span class="dot online"></span></div>
+        <div class="tile-state"><b class="idle">○ idle</b> · online</div>
+        <div class="tile-stats"><span>runs <span class="num">87</span></span><span>success <span class="num">99%</span></span></div>
+        <button class="open">Open</button>
+      </div>
+      <div class="tile">
+        <div class="tile-head"><span class="tile-name">orion-edge</span><span class="dot offline"></span></div>
+        <div class="tile-state"><b class="idle">○ idle</b> · offline</div>
+        <div class="tile-stats"><span>runs <span class="num">41</span></span><span>success <span class="num">88%</span></span></div>
+        <button class="open">Open</button>
+      </div>
+    </div>
+
+    <div class="section-title">Recent Runs</div>
+    <table>
+      <thead>
+        <tr><th>Run</th><th>Agent</th><th>Status</th><th>Time</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mono">deploy --env staging</td><td class="mono">atlas-01</td><td><span class="status-pill running">running</span></td><td class="time">12s ago</td></tr>
+        <tr><td class="mono">index-rebuild</td><td class="mono">hermes-core</td><td><span class="status-pill running">running</span></td><td class="time">3m ago</td></tr>
+        <tr><td class="mono">deploy --env prod</td><td class="mono">hermes-core</td><td><span class="status-pill approval">approval</span></td><td class="time">4m ago</td></tr>
+        <tr><td class="mono">healthcheck --quick</td><td class="mono">atlas-01</td><td><span class="status-pill done">done</span></td><td class="time">9m ago</td></tr>
+        <tr><td class="mono">deploy --env staging</td><td class="mono">orion-edge</td><td><span class="status-pill failed">failed</span></td><td class="time">14m ago</td></tr>
+        <tr><td class="mono">warm-cache</td><td class="mono">orion-edge</td><td><span class="status-pill done">done</span></td><td class="time">22m ago</td></tr>
+      </tbody>
+    </table>
+  </main>
+</body>
+</html>

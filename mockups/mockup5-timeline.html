@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activity Timeline</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --accent-dim: #1f6feb;
+    --success: #3fb950;
+    --danger: #f85149;
+    --warn: #d29922;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+  header h1 { font-size: 16px; font-weight: 600; }
+  header h1 span { color: var(--accent); }
+  .back {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .back:hover { color: var(--text); border-color: var(--accent); }
+
+  .filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+    flex-wrap: wrap;
+  }
+  .filters .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-right: 4px; }
+  .chip {
+    background: var(--bg);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .chip:hover { color: var(--text); border-color: var(--accent); }
+  .chip.active { background: var(--accent-dim); border-color: var(--accent-dim); color: #fff; }
+  .filters .spacer { flex: 1; }
+
+  main {
+    flex: 1;
+    max-width: 860px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 24px;
+    padding-bottom: 120px;
+  }
+  .day { margin-bottom: 24px; }
+  .day-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .event {
+    display: flex;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+    border-radius: 8px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .event:hover { background: rgba(88, 166, 255, 0.05); }
+  .event .icon { font-size: 16px; width: 24px; text-align: center; flex-shrink: 0; margin-top: 2px; }
+  .icon.run { color: var(--accent); }
+  .icon.done { color: var(--success); }
+  .icon.fail { color: var(--danger); }
+  .icon.appr { color: var(--warn); }
+  .event .body { flex: 1; min-width: 0; }
+  .event .title { font-size: 14px; font-weight: 600; }
+  .event .title .agent { font-family: var(--mono); color: var(--accent); font-size: 13px; }
+  .event .desc { font-size: 13px; color: var(--muted); margin-top: 3px; }
+  .event .meta { display: flex; gap: 16px; font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .event .meta .dur { color: var(--text); }
+
+  /* Quick run composer */
+  .composer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+  }
+  .composer .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+  select, input[type="text"] {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: var(--mono);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  select:focus, input[type="text"]:focus { border-color: var(--accent); }
+  .composer input[type="text"] { flex: 1; min-width: 160px; }
+  .btn {
+    background: var(--accent-dim);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 9px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn:hover { background: var(--accent); }
+</style>
+</head>
+<body>
+  <header>
+    <h1>◷ Activity <span>Timeline</span></h1>
+    <a class="back" href="index.html">← Back to mockups</a>
+  </header>
+
+  <div class="filters">
+    <span class="label">Status</span>
+    <button class="chip active">All</button>
+    <button class="chip">● Running</button>
+    <button class="chip">✓ Done</button>
+    <button class="chip">✗ Failed</button>
+    <button class="chip">⚠ Approval</button>
+    <span class="spacer"></span>
+    <span class="label">Agent</span>
+    <button class="chip active">All</button>
+    <button class="chip">atlas-01</button>
+    <button class="chip">atlas-02</button>
+    <button class="chip">hermes-core</button>
+    <button class="chip">orion-edge</button>
+  </div>
+
+  <main>
+    <div class="day">
+      <div class="day-label">Today</div>
+
+      <div class="event">
+        <div class="icon run">●</div>
+        <div class="body">
+          <div class="title"><span class="agent">atlas-01</span> · deploy --env staging</div>
+          <div class="desc">Deploying bundle to staging environment</div>
+          <div class="meta"><span>20:14:05</span><span class="dur">running · 12s</span></div>
+        </div>
+      </div>
+
+      <div class="event">
+        <div class="icon appr">⚠</div>
+        <div class="body">
+          <div class="title"><span class="agent">hermes-core</span> · deploy --env prod</div>
+          <div class="desc">Production deployment awaiting operator approval</div>
+          <div class="meta"><span>20:10:02</span><span class="dur">waiting 4m</span></div>
+        </div>
+      </div>
+
+      <div class="event">
+        <div class="icon done">✓</div>
+        <div class="body">
+          <div class="title"><span class="agent">atlas-01</span> · healthcheck --quick</div>
+          <div class="desc">All 12 endpoints healthy</div>
+          <div class="meta"><span>20:05:41</span><span class="dur">3.1s</span></div>
+        </div>
+      </div>
+
+      <div class="event">
+        <div class="icon fail">✗</div>
+        <div class="body">
+          <div class="title"><span class="agent">orion-edge</span> · deploy --env staging</div>
+          <div class="desc">Connection lost during artifact upload</div>
+          <div class="meta"><span>19:58:12</span><span class="dur">failed after 42s</span></div>
+        </div>
+      </div>
+
+      <div class="event">
+        <div class="icon done">✓</div>
+        <div class="body">
+          <div class="title"><span class="agent">atlas-02</span> · lint --all</div>
+          <div class="desc">0 errors, 3 warnings</div>
+          <div class="meta"><span>19:47:30</span><span class="dur">9.4s</span></div>
+        </div>
+      </div>
+
+      <div class="event">
+        <div class="icon run">●</div>
+        <div class="body">
+          <div class="title"><span class="agent">hermes-core</span> · index-rebuild</div>
+          <div class="desc">Rebuilding search index (28%)</div>
+          <div class="meta"><span>19:40:18</span><span class="dur">running · 3m 41s</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="day">
+      <div class="day-label">Yesterday</div>
+
+      <div class="event">
+        <div class="icon done">✓</div>
+        <div class="body">
+          <div class="title"><span class="agent">atlas-02</span> · db-migrate --dry-run</div>
+          <div class="desc">Dry run passed, 0 pending migrations</div>
+          <div class="meta"><span>22:31:05</span><span class="dur">2m 12s</span></div>
+        </div>
+      </div>
+
+      <div class="event">
+        <div class="icon done">✓</div>
+        <div class="body">
+          <div class="title"><span class="agent">orion-edge</span> · warm-cache</div>
+          <div class="desc">Cache warmed for 3 endpoints</div>
+          <div class="meta"><span>21:04:44</span><span class="dur">18s</span></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="composer">
+    <span class="label">Quick Run</span>
+    <select>
+      <option>atlas-01</option>
+      <option>atlas-02</option>
+      <option>hermes-core</option>
+      <option>orion-edge</option>
+    </select>
+    <select>
+      <option>deploy</option>
+      <option>healthcheck</option>
+      <option>backup</option>
+      <option>lint</option>
+      <option>index-rebuild</option>
+    </select>
+    <input type="text" placeholder="args… e.g. --env staging">
+    <button class="btn">Launch</button>
+  </div>
+
+<script>
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const group = chip.closest('.filters');
+      const label = chip.previousElementSibling && chip.previousElementSibling.classList.contains('label') ? chip.previousElementSibling.textContent : null;
+      const siblings = [...group.querySelectorAll('.chip')];
+      // group by label: status chips before spacer, agent chips after
+      const isStatus = label === 'Status';
+      siblings.forEach(c => {
+        const cLabel = c.previousElementSibling && c.previousElementSibling.classList.contains('label') ? c.previousElementSibling.textContent : null;
+        const cIsStatus = cLabel === 'Status';
+        if (cIsStatus === isStatus) c.classList.remove('active');
+      });
+      chip.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

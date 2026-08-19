@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kanban Run Board</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --accent-dim: #1f6feb;
+    --success: #3fb950;
+    --danger: #f85149;
+    --warn: #d29922;
+    --purple: #bc8cff;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+  header h1 { font-size: 16px; font-weight: 600; }
+  header h1 span { color: var(--accent); }
+  .back {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .back:hover { color: var(--text); border-color: var(--accent); }
+
+  .filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+    flex-wrap: wrap;
+  }
+  .filters .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-right: 4px; }
+  .chip {
+    background: var(--bg);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .chip:hover { color: var(--text); border-color: var(--accent); }
+  .chip.active {
+    background: var(--accent-dim);
+    border-color: var(--accent-dim);
+    color: #fff;
+  }
+
+  .board {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    padding: 20px 24px;
+    overflow-x: auto;
+    min-width: 0;
+  }
+  .col {
+    background: rgba(22, 27, 34, 0.6);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    min-width: 220px;
+  }
+  .col-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .col-head .count {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .col-head.queued { color: var(--muted); }
+  .col-head.running { color: var(--accent); }
+  .col-head.approval { color: var(--warn); }
+  .col-head.done { color: var(--success); }
+  .col-head.failed { color: var(--danger); }
+  .col-body { padding: 12px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+
+  .run-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+  }
+  .run-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-dim);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  }
+  .run-card .agent {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+  }
+  .run-card .name { font-size: 14px; font-weight: 600; margin: 4px 0 8px; }
+  .run-card .meta {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .status-pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 999px;
+    padding: 2px 10px;
+  }
+  .status-pill.queued { background: rgba(139, 148, 158, 0.15); color: var(--muted); }
+  .status-pill.running { background: rgba(88, 166, 255, 0.15); color: var(--accent); }
+  .status-pill.approval { background: rgba(210, 153, 34, 0.15); color: var(--warn); }
+  .status-pill.done { background: rgba(63, 185, 80, 0.15); color: var(--success); }
+  .status-pill.failed { background: rgba(248, 81, 73, 0.15); color: var(--danger); }
+
+  .approve-row { display: flex; gap: 8px; margin-top: 10px; }
+  .approve-row .btn {
+    flex: 1;
+    border: none;
+    border-radius: 6px;
+    padding: 7px 0;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter 0.15s;
+  }
+  .approve-row .btn:hover { filter: brightness(1.2); }
+  .btn.y { background: var(--success); color: #0d1117; }
+  .btn.n { background: var(--danger); color: #fff; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>▦ Kanban <span>Run Board</span></h1>
+    <a class="back" href="index.html">← Back to mockups</a>
+  </header>
+
+  <div class="filters">
+    <span class="label">Agents</span>
+    <button class="chip active">All</button>
+    <button class="chip">atlas-01</button>
+    <button class="chip">atlas-02</button>
+    <button class="chip">hermes-core</button>
+    <button class="chip">orion-edge</button>
+  </div>
+
+  <div class="board">
+    <div class="col">
+      <div class="col-head queued">QUEUED <span class="count">3</span></div>
+      <div class="col-body">
+        <div class="run-card">
+          <div class="agent">atlas-02</div>
+          <div class="name">db-migrate --dry-run</div>
+          <div class="meta"><span class="status-pill queued">queued</span><span>queued 2m</span></div>
+        </div>
+        <div class="run-card">
+          <div class="agent">orion-edge</div>
+          <div class="name">sync-vector-index</div>
+          <div class="meta"><span class="status-pill queued">queued</span><span>queued 5m</span></div>
+        </div>
+        <div class="run-card">
+          <div class="agent">atlas-01</div>
+          <div class="name">backup --full</div>
+          <div class="meta"><span class="status-pill queued">queued</span><span>queued 8m</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="col-head running">RUNNING <span class="count">2</span></div>
+      <div class="col-body">
+        <div class="run-card">
+          <div class="agent">atlas-01</div>
+          <div class="name">deploy --env staging</div>
+          <div class="meta"><span class="status-pill running">running</span><span>12s · 64%</span></div>
+        </div>
+        <div class="run-card">
+          <div class="agent">hermes-core</div>
+          <div class="name">index-rebuild</div>
+          <div class="meta"><span class="status-pill running">running</span><span>3m 41s · 28%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="col-head approval">AWAITING APPROVAL <span class="count">2</span></div>
+      <div class="col-body">
+        <div class="run-card">
+          <div class="agent">hermes-core</div>
+          <div class="name">deploy --env prod</div>
+          <div class="meta"><span class="status-pill approval">approval</span><span>waiting 4m</span></div>
+          <div class="approve-row">
+            <button class="btn y">Y</button>
+            <button class="btn n">N</button>
+          </div>
+        </div>
+        <div class="run-card">
+          <div class="agent">atlas-02</div>
+          <div class="name">purge-old-artifacts</div>
+          <div class="meta"><span class="status-pill approval">approval</span><span>waiting 11m</span></div>
+          <div class="approve-row">
+            <button class="btn y">Y</button>
+            <button class="btn n">N</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="col-head done">DONE <span class="count">4</span></div>
+      <div class="col-body">
+        <div class="run-card">
+          <div class="agent">atlas-01</div>
+          <div class="name">healthcheck --quick</div>
+          <div class="meta"><span class="status-pill done">done</span><span>3.1s</span></div>
+        </div>
+        <div class="run-card">
+          <div class="agent">orion-edge</div>
+          <div class="name">warm-cache</div>
+          <div class="meta"><span class="status-pill done">done</span><span>18s</span></div>
+        </div>
+        <div class="run-card">
+          <div class="agent">atlas-02</div>
+          <div class="name">lint --all</div>
+          <div class="meta"><span class="status-pill done">done</span><span>9.4s</span></div>
+        </div>
+        <div class="run-card">
+          <div class="agent">hermes-core</div>
+          <div class="name">export-metrics</div>
+          <div class="meta"><span class="status-pill done">done</span><span>2m 12s</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="col-head failed">FAILED <span class="count">1</span></div>
+      <div class="col-body">
+        <div class="run-card">
+          <div class="agent">orion-edge</div>
+          <div class="name">deploy --env staging</div>
+          <div class="meta"><span class="status-pill failed">failed</span><span>after 42s</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const chips = document.querySelectorAll('.chip');
+  chips.forEach(chip => chip.addEventListener('click', () => {
+    chips.forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+  }));
+  document.querySelectorAll('.approve-row .btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const card = btn.closest('.run-card');
+      card.style.opacity = '0.4';
+      card.style.pointerEvents = 'none';
+    });
+  });
+</script>
+</body>
+</html>

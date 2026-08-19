@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guided Run Wizard</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --accent-dim: #1f6feb;
+    --success: #3fb950;
+    --danger: #f85149;
+    --warn: #d29922;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+  header h1 { font-size: 16px; font-weight: 600; }
+  header h1 span { color: var(--accent); }
+  .back {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .back:hover { color: var(--text); border-color: var(--accent); }
+
+  /* Stepper */
+  .stepper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+    flex-wrap: wrap;
+  }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .step .circle {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    transition: all 0.2s;
+  }
+  .step.active { color: var(--text); }
+  .step.active .circle { border-color: var(--accent); color: var(--accent); }
+  .step.done { color: var(--success); }
+  .step.done .circle { border-color: var(--success); color: var(--success); }
+  .step .connector { width: 40px; height: 2px; background: var(--border); }
+  .step.done .connector { background: var(--success); }
+
+  main {
+    flex: 1;
+    max-width: 720px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+  .step-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .step-sub { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+
+  /* Step 1: agent radio cards */
+  .agent-options { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .agent-opt {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .agent-opt:hover { border-color: var(--accent-dim); }
+  .agent-opt.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .agent-opt .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .agent-opt .name { font-family: var(--mono); font-size: 15px; font-weight: 700; }
+  .agent-opt .dot { width: 9px; height: 9px; border-radius: 50%; }
+  .dot.online { background: var(--success); }
+  .dot.offline { background: var(--danger); }
+  .agent-opt .meta { font-size: 12px; color: var(--muted); }
+  .agent-opt .skills { font-family: var(--mono); font-size: 11px; color: var(--accent); margin-top: 8px; }
+
+  /* Step 2: command dropdown */
+  .field { margin-bottom: 20px; }
+  .field .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  select, input[type="text"] {
+    width: 100%;
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: var(--mono);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  select:focus, input[type="text"]:focus { border-color: var(--accent); }
+  .cmd-desc { font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+  /* Step 3: params */
+  .param-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+  .param-row input { flex: 1; }
+  .param-row .key { flex: 0 0 160px; }
+  .remove {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .remove:hover { border-color: var(--danger); }
+  .add {
+    background: transparent;
+    color: var(--accent);
+    border: 1px dashed var(--accent-dim);
+    border-radius: 6px;
+    padding: 9px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .add:hover { background: rgba(31, 111, 235, 0.1); }
+
+  /* Step 4: review */
+  .review {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+  .review .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .review .row:last-child { border-bottom: none; }
+  .review .row .k { color: var(--muted); }
+  .review .row .v { font-family: var(--mono); }
+  .launch {
+    width: 100%;
+    background: var(--success);
+    color: #0d1117;
+    border: none;
+    border-radius: 8px;
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter 0.15s;
+  }
+  .launch:hover { filter: brightness(1.1); }
+
+  /* Nav */
+  .nav {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 28px;
+  }
+  .btn {
+    background: var(--accent-dim);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 22px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn:hover { background: var(--accent); }
+  .btn.ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn.ghost:hover { color: var(--text); border-color: var(--muted); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>✦ Guided Run <span>Wizard</span></h1>
+    <a class="back" href="index.html">← Back to mockups</a>
+  </header>
+
+  <div class="stepper">
+    <div class="step active" data-step="1"><span class="circle">1</span> Pick agent</div>
+    <div class="step" data-step="2"><span class="connector"></span><span class="circle">2</span> Command</div>
+    <div class="step" data-step="3"><span class="connector"></span><span class="circle">3</span> Review</div>
+    <div class="step" data-step="4"><span class="connector"></span><span class="circle">4</span> Launch</div>
+  </div>
+
+  <main>
+    <!-- Step 1 -->
+    <section class="pane" data-pane="1">
+      <div class="step-title">Pick an agent</div>
+      <div class="step-sub">Choose which agent should run this command.</div>
+      <div class="agent-options">
+        <div class="agent-opt selected" data-agent="atlas-01">
+          <div class="top"><span class="name">atlas-01</span><span class="dot online"></span></div>
+          <div class="meta">online · active</div>
+          <div class="skills">deploy · build · verify · backup</div>
+        </div>
+        <div class="agent-opt" data-agent="atlas-02">
+          <div class="top"><span class="name">atlas-02</span><span class="dot online"></span></div>
+          <div class="meta">online · active</div>
+          <div class="skills">deploy · lint · migrate</div>
+        </div>
+        <div class="agent-opt" data-agent="hermes-core">
+          <div class="top"><span class="name">hermes-core</span><span class="dot online"></span></div>
+          <div class="meta">online · idle</div>
+          <div class="skills">index · export · orchestrate</div>
+        </div>
+        <div class="agent-opt" data-agent="orion-edge">
+          <div class="top"><span class="name">orion-edge</span><span class="dot offline"></span></div>
+          <div class="meta">offline · idle</div>
+          <div class="skills">cache · sync · edge</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 2 -->
+    <section class="pane" data-pane="2" style="display:none">
+      <div class="step-title">Choose a command</div>
+      <div class="step-sub">Select the command to run on <span id="cmd-agent" class="mono" style="font-family:var(--mono);color:var(--accent)">atlas-01</span>.</div>
+      <div class="field">
+        <div class="label">Command</div>
+        <select id="cmd-select">
+          <option>deploy</option>
+          <option>healthcheck</option>
+          <option>backup</option>
+          <option>lint</option>
+          <option>index-rebuild</option>
+        </select>
+        <div class="cmd-desc">Deploy a bundle to the target environment.</div>
+      </div>
+    </section>
+
+    <!-- Step 3 -->
+    <section class="pane" data-pane="3" style="display:none">
+      <div class="step-title">Review parameters</div>
+      <div class="step-sub">Add or remove parameters for this run.</div>
+      <div class="field">
+        <div class="label">Parameters</div>
+        <div id="params">
+          <div class="param-row">
+            <input class="key" type="text" placeholder="key" value="--env">
+            <input type="text" placeholder="value" value="staging">
+            <button class="remove">✕</button>
+          </div>
+          <div class="param-row">
+            <input class="key" type="text" placeholder="key" value="--force">
+            <input type="text" placeholder="value" value="true">
+            <button class="remove">✕</button>
+          </div>
+        </div>
+        <button class="add" id="add-param">+ Add parameter</button>
+      </div>
+    </section>
+
+    <!-- Step 4 -->
+    <section class="pane" data-pane="4" style="display:none">
+      <div class="step-title">Review &amp; launch</div>
+      <div class="step-sub">Confirm the details below, then launch the run.</div>
+      <div class="review">
+        <div class="row"><span class="k">Agent</span><span class="v" id="rev-agent">atlas-01</span></div>
+        <div class="row"><span class="k">Command</span><span class="v" id="rev-cmd">deploy</span></div>
+        <div class="row"><span class="k">Parameters</span><span class="v" id="rev-params">--env staging, --force true</span></div>
+        <div class="row"><span class="k">Approval required</span><span class="v">yes (prod only)</span></div>
+      </div>
+      <button class="launch" id="launch">🚀 Launch</button>
+    </section>
+
+    <div class="nav">
+      <button class="btn ghost" id="back" disabled>← Back</button>
+      <button class="btn" id="next">Next →</button>
+    </div>
+  </main>
+
+<script>
+  let step = 1;
+  const total = 4;
+  const panes = document.querySelectorAll('.pane');
+  const steps = document.querySelectorAll('.step');
+  const backBtn = document.getElementById('back');
+  const nextBtn = document.getElementById('next');
+  const launchBtn = document.getElementById('launch');
+
+  function render() {
+    panes.forEach(p => p.style.display = p.dataset.pane == step ? 'block' : 'none');
+    steps.forEach(s => {
+      const n = +s.dataset.step;
+      s.classList.toggle('active', n === step);
+      s.classList.toggle('done', n < step);
+    });
+    backBtn.disabled = step === 1;
+    nextBtn.style.display = step === total ? 'none' : '';
+    launchBtn.style.display = step === total ? '' : 'none';
+  }
+
+  document.querySelectorAll('.agent-opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+      document.querySelectorAll('.agent-opt').forEach(o => o.classList.remove('selected'));
+      opt.classList.add('selected');
+      const name = opt.dataset.agent;
+      document.getElementById('cmd-agent').textContent = name;
+      document.getElementById('rev-agent').textContent = name;
+    });
+  });
+
+  document.getElementById('cmd-select').addEventListener('change', e => {
+    document.getElementById('rev-cmd').textContent = e.target.value;
+  });
+
+  document.getElementById('add-param').addEventListener('click', () => {
+    const row = document.createElement('div');
+    row.className = 'param-row';
+    row.innerHTML = '<input class="key" type="text" placeholder="key"><input type="text" placeholder="value"><button class="remove">✕</button>';
+    document.getElementById('params').appendChild(row);
+    row.querySelector('.remove').addEventListener('click', () => row.remove());
+    updateReview();
+  });
+  document.querySelectorAll('.param-row .remove').forEach(btn => {
+    btn.addEventListener('click', () => btn.closest('.param-row').remove());
+  });
+  document.getElementById('params').addEventListener('input', updateReview);
+
+  function updateReview() {
+    const rows = [...document.querySelectorAll('.param-row')];
+    const parts = rows.map(r => {
+      const k = r.querySelector('.key').value;
+      const v = r.querySelector('input[type=text]:not(.key)').value;
+      return (k || '?') + (v ? ' ' + v : '');
+    });
+    document.getElementById('rev-params').textContent = parts.join(', ') || '—';
+  }
+
+  nextBtn.addEventListener('click', () => { if (step < total) { step++; render(); } });
+  backBtn.addEventListener('click', () => { if (step > 1) { step--; render(); } });
+  launchBtn.addEventListener('click', () => {
+    launchBtn.textContent = 'Launching…';
+    launchBtn.disabled = true;
+    setTimeout(() => { launchBtn.textContent = '✓ Launched'; }, 1200);
+  });
+
+  render();
+</script>
+</body>
+</html>
