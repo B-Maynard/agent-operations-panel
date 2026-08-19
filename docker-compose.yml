@@ -1,0 +1,15 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:${PORT:-3000}"
+    environment:
+      NODE_ENV: production
+      PORT: ${PORT:-3000}
+      PANEL_AUTH_TOKEN: ${PANEL_AUTH_TOKEN:-}
+    volumes:
+      - app-data:/app/data
+
+volumes:
+  app-data:
