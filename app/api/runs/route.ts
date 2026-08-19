@@ -2,14 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { clearRuns, createRun, getAgent, getTemplate, listRuns, updateRun } from '@/lib/store'
 import { dispatchRun, startTracker } from '@/lib/hermes'
 import { resolveTemplate } from '@/lib/utils'
-import { requireAuth, unauthorized } from '@/lib/auth'
 import type { DispatchBody } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 export async function GET(req: NextRequest) {
-  if (!requireAuth(req)) return unauthorized()
   const { searchParams } = new URL(req.url)
   const agentId = searchParams.get('agentId') ?? undefined
   const status = searchParams.get('status') ?? undefined
@@ -18,14 +16,12 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(listRuns({ agentId, status, batchId, limit }))
 }
 
-export async function DELETE(req: NextRequest) {
-  if (!requireAuth(req)) return unauthorized()
+export async function DELETE() {
   clearRuns()
   return NextResponse.json({ ok: true })
 }
 
 export async function POST(req: NextRequest) {
-  if (!requireAuth(req)) return unauthorized()
   let body: DispatchBody
   try {
     body = await req.json()

@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { deleteTemplate, getTemplate, updateTemplate } from '@/lib/store'
 import { detectVariables } from '@/lib/utils'
-import { requireAuth, unauthorized } from '@/lib/auth'
 import type { Template } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!requireAuth(req)) return unauthorized()
   const { id } = await params
   let body: Record<string, unknown>
   try {
@@ -29,8 +27,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   return NextResponse.json(updated)
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!requireAuth(req)) return unauthorized()
+export async function DELETE({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   if (!deleteTemplate(id)) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json({ ok: true })

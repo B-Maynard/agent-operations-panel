@@ -1,13 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getAgent } from '@/lib/store'
 import { checkHealth } from '@/lib/hermes'
-import { requireAuth, unauthorized } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!requireAuth(req)) return unauthorized()
+export async function GET({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const agent = getAgent(id)
   if (!agent) return NextResponse.json({ error: 'Not found' }, { status: 404 })

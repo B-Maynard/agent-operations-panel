@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAgent, getRun } from '@/lib/store'
 import { steerUpstream } from '@/lib/hermes'
-import { requireAuth, unauthorized } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!requireAuth(req)) return unauthorized()
   const { id } = await params
   let body: Record<string, unknown>
   try {

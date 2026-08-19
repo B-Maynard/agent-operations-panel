@@ -2,14 +2,12 @@ import { NextRequest } from 'next/server'
 import { getRun } from '@/lib/store'
 import { events } from '@/lib/events'
 import { sseEncode, sseHeaders } from '@/lib/sse'
-import { requireAuth, unauthorized } from '@/lib/auth'
 import type { Run } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!requireAuth(req)) return unauthorized()
   const { id } = await params
   const run = getRun(id)
   if (!run) return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 })

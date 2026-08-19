@@ -2,14 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getTemplate } from '@/lib/store'
 import { dispatchFanout } from '@/lib/fanout'
 import { resolveTemplate } from '@/lib/utils'
-import { requireAuth, unauthorized } from '@/lib/auth'
 import type { FanoutBody } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
-  if (!requireAuth(req)) return unauthorized()
   let body: FanoutBody
   try {
     body = await req.json()

@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { deleteAgent, getAgent, updateAgent } from '@/lib/store'
 import { toPublicAgent } from '@/lib/utils'
-import { requireAuth, unauthorized } from '@/lib/auth'
 import type { Agent } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!requireAuth(req)) return unauthorized()
+export async function GET({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const agent = getAgent(id)
   if (!agent) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -16,7 +14,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!requireAuth(req)) return unauthorized()
   const { id } = await params
   let body: Record<string, unknown>
   try {
@@ -45,8 +42,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   return NextResponse.json(toPublicAgent(updated!))
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!requireAuth(req)) return unauthorized()
+export async function DELETE({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   if (!deleteAgent(id)) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json({ ok: true })

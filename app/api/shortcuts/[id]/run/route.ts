@@ -1,14 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getShortcut, getTemplate } from '@/lib/store'
 import { dispatchFanout } from '@/lib/fanout'
 import { resolveTemplate } from '@/lib/utils'
-import { requireAuth, unauthorized } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!requireAuth(_req)) return unauthorized()
+export async function POST({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const shortcut = getShortcut(id)
   if (!shortcut) return NextResponse.json({ error: 'Shortcut not found' }, { status: 404 })

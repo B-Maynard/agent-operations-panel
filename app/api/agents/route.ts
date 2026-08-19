@@ -2,19 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAgent, listAgents } from '@/lib/store'
 import { toPublicAgent } from '@/lib/utils'
 import { checkHealth } from '@/lib/hermes'
-import { requireAuth, unauthorized } from '@/lib/auth'
 import type { Agent } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-export async function GET(req: NextRequest) {
-  if (!requireAuth(req)) return unauthorized()
+export async function GET() {
   return NextResponse.json(listAgents().map(toPublicAgent))
 }
 
 export async function POST(req: NextRequest) {
-  if (!requireAuth(req)) return unauthorized()
   let body: Record<string, unknown>
   try {
     body = await req.json()

@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createTemplate, listTemplates } from '@/lib/store'
 import { detectVariables } from '@/lib/utils'
-import { requireAuth, unauthorized } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-export async function GET(req: NextRequest) {
-  if (!requireAuth(req)) return unauthorized()
+export async function GET() {
   return NextResponse.json(listTemplates())
 }
 
 export async function POST(req: NextRequest) {
-  if (!requireAuth(req)) return unauthorized()
   let body: Record<string, unknown>
   try {
     body = await req.json()
