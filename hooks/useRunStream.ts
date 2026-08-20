@@ -22,6 +22,7 @@ export function useRunStream(runId: string | null) {
 
     let buffer = ''
     const decoder = new TextDecoder()
+    let reconnectTimer: ReturnType<typeof setTimeout>
 
     async function connect() {
       try {
@@ -29,11 +30,9 @@ export function useRunStream(runId: string | null) {
           signal: abort.signal,
           headers: { Accept: 'text/event-stream' },
         })
-        if (!res.ok) {
-          setError(`HTTP ${res.status}`)
-          return
-        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
         setConnected(true)
+        setError(null)
         const reader = res.body!.getReader()
         while (true) {
           const { done, value } = await reader.read()
@@ -55,14 +54,22 @@ export function useRunStream(runId: string | null) {
           }
         }
       } catch (e) {
-        if ((e as Error).name !== 'AbortError') setError((e as Error).message)
+        if ((e as Error).name === 'AbortError' || abort.signal.aborted) return
+        setError((e as Error).message)
       } finally {
         setConnected(false)
+        // ponytail: 1s reconnect — re-hydrates tracker via SSE route on next connect
+        if (!abort.signal.aborted) {
+          reconnectTimer = setTimeout(connect, 1000)
+        }
       }
     }
 
     connect()
-    return () => abort.abort()
+    return () => {
+      abort.abort()
+      clearTimeout(reconnectTimer)
+    }
   }, [runId])
 
   return { run, connected, error }

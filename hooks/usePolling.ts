@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 /** Poll a fetch callback every `intervalMs` while mounted. */
 export function usePolling<T>(fetcher: () => Promise<T>, intervalMs: number, deps: unknown[] = []) {
@@ -9,27 +9,29 @@ export function usePolling<T>(fetcher: () => Promise<T>, intervalMs: number, dep
   const fetcherRef = useRef(fetcher)
   fetcherRef.current = fetcher
 
-  useEffect(() => {
-    let cancelled = false
-    const tick = async () => {
-      try {
-        const result = await fetcherRef.current()
-        if (!cancelled) {
-          setData(result)
-          setError(null)
-        }
-      } catch (e) {
-        if (!cancelled) setError((e as Error).message)
-      }
+  const mountedRef = useRef(false)
+
+  const refetch = useCallback(async () => {
+    try {
+      const result = await fetcherRef.current()
+      if (!mountedRef.current) return
+      setData(result)
+      setError(null)
+    } catch (e) {
+      if (mountedRef.current) setError((e as Error).message)
     }
-    tick()
-    const timer = setInterval(tick, intervalMs)
+  }, [])
+
+  useEffect(() => {
+    mountedRef.current = true
+    refetch()
+    const timer = setInterval(refetch, intervalMs)
     return () => {
-      cancelled = true
+      mountedRef.current = false
       clearInterval(timer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [intervalMs, ...deps])
 
-  return { data, error }
+  return { data, error, refetch }
 }

@@ -122,6 +122,7 @@ export async function proxyDiscovery(agent: Agent, path: string): Promise<{
 // ---- Background tracker ----
 
 const trackers = new Map<string, NodeJS.Timeout>()
+const consecutiveFailures = new Map<string, number>()
 
 function mapUpstreamStatus(status: string): Run['status'] {
   switch (status) {
@@ -158,7 +159,15 @@ export function startTracker(runId: string): void {
     }
 
     const agent = getAgent(run.agentId)
-    if (!agent || !run.upstreamRunId) return stopTracker(runId)
+    if (!agent || !run.upstreamRunId) {
+      const error = !agent
+        ? `Agent '${run.agentId}' not found`
+        : 'No upstream run ID — dispatch may have failed'
+      const updated = updateRun(runId, { status: 'failed', error, endedAt: new Date().toISOString() })
+      if (updated) emitRun(updated)
+      consecutiveFailures.delete(runId)
+      return stopTracker(runId)
+    }
 
     try {
       const up = await getUpstreamRun(agent, run.upstreamRunId)
@@ -179,10 +188,27 @@ export function startTracker(runId: string): void {
       const updated = updateRun(runId, patch)
       if (updated) {
         emitRun(updated)
-        if (isTerminal(updated.status)) return stopTracker(runId)
+        if (isTerminal(updated.status)) {
+          consecutiveFailures.delete(runId)
+          return stopTracker(runId)
+        }
       }
+      consecutiveFailures.delete(runId)
     } catch {
-      // transient upstream error; keep polling
+      const count = (consecutiveFailures.get(runId) ?? 0) + 1
+      consecutiveFailures.set(runId, count)
+      // ponytail: 15 failures ≈ 30s, enough for slow agent reboots
+      if (count >= 15) {
+        const updated = updateRun(runId, {
+          status: 'failed',
+          error: 'Upstream unreachable after repeated failures',
+          endedAt: new Date().toISOString(),
+        })
+        if (updated) emitRun(updated)
+        consecutiveFailures.delete(runId)
+        stopTracker(runId)
+      }
+      return
     }
   }
 
@@ -197,4 +223,5 @@ export function stopTracker(runId: string): void {
     clearInterval(timer)
     trackers.delete(runId)
   }
+  consecutiveFailures.delete(runId)
 }

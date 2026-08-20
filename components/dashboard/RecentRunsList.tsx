@@ -8,7 +8,7 @@ import { formatTime, truncate } from '@/lib/utils'
 import type { Run } from '@/lib/types'
 
 export function RecentRunsList() {
-  const { data } = usePolling<Run[]>(
+  const { data, refetch } = usePolling<Run[]>(
     () => fetch('/api/runs?limit=10').then((r) => (r.ok ? r.json() : [])),
     5000,
     [],
@@ -18,6 +18,7 @@ export function RecentRunsList() {
   async function clear() {
     if (!confirm('Clear all recent runs?')) return
     await fetch('/api/runs', { method: 'DELETE' })
+    await refetch()
   }
 
   if (runs.length === 0) return <p className="text-sm text-[#8b949e]">No runs yet.</p>
