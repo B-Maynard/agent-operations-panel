@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getAgent, getRun, updateRun } from '@/lib/store'
 import { rejectUpstream } from '@/lib/hermes'
 import { emitRun } from '@/lib/events'
@@ -6,7 +6,7 @@ import { emitRun } from '@/lib/events'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-export async function POST({ params }: { params: Promise<{ id: string }> }) {
+export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const run = getRun(id)
   if (!run) return NextResponse.json({ error: 'Not found' }, { status: 404 })
