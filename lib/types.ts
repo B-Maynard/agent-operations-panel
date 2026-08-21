@@ -36,6 +36,7 @@ export interface Run {
   outputTail: string
   usage: Record<string, unknown> | null
   error: string | null
+  lastEvent: string | null
 }
 
 export interface Template {

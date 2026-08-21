@@ -14,7 +14,7 @@ beforeAll(async () => {
     const body: Buffer[] = []
     req.on('data', (c) => body.push(c))
     req.on('end', async () => {
-      const headers = { ...req.headers, 'content-type': 'application/json' }
+      const headers = { ...req.headers, 'content-type': 'application/json' } as unknown as Record<string, string>
       const r = new Request(`http://localhost${req.url}`, {
         method: req.method,
         headers,

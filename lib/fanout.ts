@@ -28,6 +28,7 @@ export async function dispatchFanout(
         outputTail: '',
         usage: null,
         error: null,
+        lastEvent: null,
       })
       try {
         const { runId } = await dispatchRun(agent, prompt)

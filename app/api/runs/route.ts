@@ -63,6 +63,7 @@ export async function POST(req: NextRequest) {
     outputTail: '',
     usage: null,
     error: null,
+    lastEvent: null,
   })
 
   try {
