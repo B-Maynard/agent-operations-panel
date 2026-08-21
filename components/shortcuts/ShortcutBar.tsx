@@ -28,7 +28,11 @@ export function ShortcutBar() {
       const res = await fetch(`/api/shortcuts/${s.id}/run`, { method: 'POST' })
       const body = await res.json()
       if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`)
-      router.push(`/fanout?batchId=${body.batchId}`)
+      if (body.runs?.length === 1) {
+        router.push(`/inspector?runId=${body.runs[0].id}`)
+      } else {
+        router.push(`/fanout?batchId=${body.batchId}`)
+      }
     } catch (e) {
       setError((e as Error).message)
     } finally {
