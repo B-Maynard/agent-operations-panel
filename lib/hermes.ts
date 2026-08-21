@@ -123,6 +123,59 @@ export async function proxyDiscovery(agent: Agent, path: string): Promise<{
 
 const trackers = new Map<string, NodeJS.Timeout>()
 const consecutiveFailures = new Map<string, number>()
+const streamControllers = new Map<string, AbortController>()
+
+async function streamUpstreamOutput(
+  agent: Agent,
+  upstreamRunId: string,
+  signal: AbortSignal,
+  onDelta: (text: string) => void,
+): Promise<void> {
+  try {
+    const res = await upstreamFetch(agent, `/v1/runs/${upstreamRunId}/stream`, { signal })
+    if (!res.ok || !res.body) return
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    while (true) {
+      if (signal.aborted) break
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      let idx: number
+      while ((idx = buffer.indexOf('\n\n')) !== -1) {
+        const chunk = buffer.slice(0, idx)
+        buffer = buffer.slice(idx + 2)
+        for (const line of chunk.split('\n')) {
+          if (!line.startsWith('data:')) continue
+          const raw = line.slice(5).trimStart()
+          if (!raw || raw === '[DONE]') continue
+          let event: Record<string, unknown>
+          try {
+            event = JSON.parse(raw)
+          } catch {
+            continue
+          }
+          let text: string | null = null
+          if (typeof event.output === 'string' && event.output) text = event.output
+          else if (typeof event.delta === 'string' && event.delta) text = event.delta
+          else if (typeof event.text === 'string' && event.text) text = event.text
+          else if (typeof event.content === 'string' && event.content) text = event.content
+          else if (typeof event.data === 'string' && event.data) text = event.data as string
+          else if (event.data && typeof event.data === 'object') {
+            const d = event.data as Record<string, unknown>
+            if (typeof d.output === 'string' && d.output) text = d.output
+            else if (typeof d.text === 'string' && d.text) text = d.text
+            else if (typeof d.content === 'string' && d.content) text = d.content
+          }
+          if (text) onDelta(text)
+        }
+      }
+    }
+  } catch {
+    // ponytail: silent — poll handles status/errors/terminal
+  }
+}
 
 function mapUpstreamStatus(status: string): Run['status'] {
   switch (status) {
@@ -147,14 +200,41 @@ function mapUpstreamStatus(status: string): Run['status'] {
 export function startTracker(runId: string): void {
   if (trackers.has(runId)) return
   const started = Date.now()
+  const controller = new AbortController()
+  streamControllers.set(runId, controller)
+
+  const initialRun = getRun(runId)
+  if (initialRun?.upstreamRunId) {
+    const initialAgent = getAgent(initialRun.agentId)
+    if (initialAgent) {
+      // ponytail: fire-and-forget SSE — poll remains source of truth for status/errors
+      streamUpstreamOutput(initialAgent, initialRun.upstreamRunId, controller.signal, (delta) => {
+        const cur = getRun(runId)
+        if (!cur || isTerminal(cur.status)) {
+          controller.abort()
+          return
+        }
+        const prev = cur.outputTail ?? ''
+        const sep = prev ? '\n' : ''
+        const next = (prev + sep + delta).slice(-50000)
+        const updated = updateRun(runId, { outputTail: next })
+        if (updated) emitRun(updated)
+      }).catch(() => {})
+    }
+  }
 
   const tick = async () => {
     const run = getRun(runId)
     if (!run) return stopTracker(runId)
-    if (isTerminal(run.status)) { emitRun(run); return stopTracker(runId) }
+    if (isTerminal(run.status)) {
+      streamControllers.get(runId)?.abort()
+      emitRun(run)
+      return stopTracker(runId)
+    }
     if (Date.now() - started > MAX_TRACK_MS) {
       updateRun(runId, { status: 'failed', error: 'Timed out after 30 minutes', endedAt: new Date().toISOString() })
       emitRun(getRun(runId))
+      streamControllers.get(runId)?.abort()
       return stopTracker(runId)
     }
 
@@ -166,6 +246,7 @@ export function startTracker(runId: string): void {
       const updated = updateRun(runId, { status: 'failed', error, endedAt: new Date().toISOString() })
       if (updated) emitRun(updated)
       consecutiveFailures.delete(runId)
+      streamControllers.get(runId)?.abort()
       return stopTracker(runId)
     }
 
@@ -190,6 +271,7 @@ export function startTracker(runId: string): void {
         emitRun(updated)
         if (isTerminal(updated.status)) {
           consecutiveFailures.delete(runId)
+          streamControllers.get(runId)?.abort()
           return stopTracker(runId)
         }
       }
@@ -206,6 +288,7 @@ export function startTracker(runId: string): void {
         })
         if (updated) emitRun(updated)
         consecutiveFailures.delete(runId)
+        streamControllers.get(runId)?.abort()
         stopTracker(runId)
       }
       return
@@ -222,6 +305,11 @@ export function stopTracker(runId: string): void {
   if (timer) {
     clearInterval(timer)
     trackers.delete(runId)
+  }
+  const sc = streamControllers.get(runId)
+  if (sc) {
+    sc.abort()
+    streamControllers.delete(runId)
   }
   consecutiveFailures.delete(runId)
 }
