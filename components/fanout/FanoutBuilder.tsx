@@ -45,7 +45,11 @@ export function FanoutBuilder() {
       const res = await fetch('/api/runs/fanout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agentIds: selected, prompt: finalPrompt }),
+        body: JSON.stringify({
+          agentIds: selected,
+          prompt: finalPrompt,
+          ...(template ? { templateId: template.id, variables: vars } : {}),
+        }),
       })
       const body = await res.json()
       if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`)

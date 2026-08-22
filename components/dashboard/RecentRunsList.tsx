@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePolling } from '@/hooks/usePolling'
+import { useTemplates } from '@/hooks/useTemplates'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { formatTime, truncate } from '@/lib/utils'
@@ -13,6 +14,7 @@ export function RecentRunsList() {
     5000,
     [],
   )
+  const { templates } = useTemplates()
   const runs = data ?? []
 
   async function clear() {
@@ -44,7 +46,9 @@ export function RecentRunsList() {
           <tr key={r.id} className="border-b border-[#30363d] last:border-0 hover:bg-[rgba(88,166,255,0.05)]">
             <td className="px-4 py-3 font-mono text-sm">
               <Link href={`/inspector?runId=${r.id}`} className="text-[#58a6ff] hover:underline">
-                {truncate(r.prompt, 40)}
+                {r.templateId
+                  ? `Template: ${templates.find((t) => t.id === r.templateId)?.name ?? r.templateId}`
+                  : truncate(r.prompt, 40)}
               </Link>
             </td>
             <td className="px-4 py-3 font-mono text-sm">{r.agentName}</td>

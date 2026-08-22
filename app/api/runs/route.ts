@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
     upstreamRunId: null,
     prompt: finalPrompt,
     templateId: resolvedTemplateId,
+    variables: resolvedTemplateId ? (variables ?? null) : null,
     status: 'queued',
     startedAt: null,
     endedAt: null,

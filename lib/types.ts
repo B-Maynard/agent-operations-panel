@@ -29,6 +29,7 @@ export interface Run {
   upstreamRunId: string | null
   prompt: string
   templateId: string | null
+  variables: Record<string, string> | null
   status: RunStatus
   createdAt: string
   startedAt: string | null

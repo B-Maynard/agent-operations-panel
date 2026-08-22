@@ -94,9 +94,12 @@ export function getRun(id: string): Run | null {
   return read<Run[]>('runs.json', []).find((r) => r.id === id) ?? null
 }
 
-export function createRun(input: Omit<Run, 'id' | 'createdAt'>): Run {
+export function createRun(
+  input: Omit<Run, 'id' | 'createdAt' | 'variables'> & { variables?: Record<string, string> | null },
+): Run {
   const run: Run = {
     ...input,
+    variables: input.variables ?? null,
     id: id('run'),
     createdAt: now(),
   }

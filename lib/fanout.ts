@@ -6,6 +6,7 @@ export async function dispatchFanout(
   agentIds: string[],
   prompt: string,
   templateId: string | null,
+  variables: Record<string, string> | null = null,
 ): Promise<{ batchId: string; runs: Run[] }> {
   const uniqueIds = [...new Set(agentIds)]
   const batchId = `batch_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
@@ -22,6 +23,7 @@ export async function dispatchFanout(
         upstreamRunId: null,
         prompt,
         templateId,
+        variables: variables ?? null,
         status: 'queued',
         startedAt: null,
         endedAt: null,

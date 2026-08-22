@@ -30,6 +30,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const { batchId, runs } = await dispatchFanout(agentIds, finalPrompt, templateId ?? null)
+  const { batchId, runs } = await dispatchFanout(agentIds, finalPrompt, templateId ?? null, variables ?? null)
   return NextResponse.json({ batchId, runs }, { status: 201 })
 }

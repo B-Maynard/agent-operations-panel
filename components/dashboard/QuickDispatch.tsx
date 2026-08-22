@@ -41,7 +41,11 @@ export function QuickDispatch() {
       const res = await fetch('/api/runs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agentId, prompt: finalPrompt }),
+        body: JSON.stringify({
+          agentId,
+          prompt: finalPrompt,
+          ...(template ? { templateId: template.id, variables: vars } : {}),
+        }),
       })
       const body = await res.json()
       if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`)

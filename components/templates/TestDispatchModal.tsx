@@ -39,7 +39,7 @@ export function TestDispatchModal({
       const res = await fetch('/api/runs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agentId, prompt }),
+        body: JSON.stringify({ agentId, prompt, templateId: template.id, variables: vars }),
       })
       const body = await res.json()
       if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`)
