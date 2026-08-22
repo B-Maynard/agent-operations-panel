@@ -25,6 +25,11 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   if (!finalPrompt) return NextResponse.json({ error: 'Shortcut has no prompt' }, { status: 400 })
   if (shortcut.agentIds.length === 0) return NextResponse.json({ error: 'Shortcut has no agents' }, { status: 400 })
 
-  const { batchId, runs } = await dispatchFanout(shortcut.agentIds, finalPrompt, templateId)
+  const { batchId, runs } = await dispatchFanout(
+    shortcut.agentIds,
+    finalPrompt,
+    templateId,
+    shortcut.variables ?? null,
+  )
   return NextResponse.json({ batchId, runs }, { status: 201 })
 }
